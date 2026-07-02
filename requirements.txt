@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+httpx
+tiktoken
+python-dotenv
+pydantic
+spacy
+redis
