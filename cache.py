@@ -1,7 +1,19 @@
 import redis
 import hashlib
+import os
+from dotenv import load_dotenv
 
-r = redis.Redis(host="localhost", port=6379, decode_responses=True)
+load_dotenv()
+
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
+
+r = redis.Redis(
+    host="picked-thrush-84969.upstash.io",
+    port=6379,
+    password=REDIS_PASSWORD,
+    ssl=True,
+    decode_responses=True
+)
 
 def get_cache_key(text):
     normalized_text = text.lower().strip()
@@ -9,17 +21,10 @@ def get_cache_key(text):
     hexdigest = hash_object.hexdigest()
     return hexdigest
 
-def get_cached_response(prompt):
-    key = get_cache_key(prompt)
-    cached_value = r.get(key)
-    if cached_value is not None:
-        return cached_value
-    else:
-        return None
+def get_cached_response(cache_input):
+    key = get_cache_key(cache_input)
+    return r.get(key)
 
-def set_cached_response(prompt, response):
-    key = get_cache_key(prompt)
-    r.set(key, response)
-    
-
-
+def set_cached_response(cache_input, response_json):
+    key = get_cache_key(cache_input)
+    r.set(key, response_json)
