@@ -28,30 +28,49 @@ GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 @limiter.limit("5/minute")
 async def proxy(request: Request, chat_request: ChatRequest):
 
-    # Step 2: compress system prompts
+    # Step 1: capture messages, and count tokens BEFORE compression
     messages = [m.model_dump() for m in chat_request.messages]
+    original_tokens = count_tokens(messages)
+
+    # Step 2: compress system prompts
     for message in messages:
         if message["role"] == "system":
             message["content"] = compress_text(message["content"])
+
+    # Step 2b: count tokens AFTER compression
+    compressed_tokens = count_tokens(messages)
+
+    # Step 2c: work out how much compression actually saved
+    tokens_saved = original_tokens - compressed_tokens
+    if original_tokens > 0:
+        compression_percent = round((tokens_saved / original_tokens) * 100, 1)
+    else:
+        compression_percent = 0
+
+    compression_report = {
+        "original_tokens": original_tokens,
+        "compressed_tokens": compressed_tokens,
+        "tokens_saved": tokens_saved,
+        "compression_percent": compression_percent
+    }
 
     cache_input = json.dumps(messages, sort_keys=True)
     cached = get_cached_response(cache_input)
     if cached is not None:
         cached_data = json.loads(cached)
-        
+
         return {
             "response": cached_data,
-            "token_report":{
-                "input_tokens":0,
-                "output_tokens":0,
-                "total_tokens":0
-            }
+            "token_report": {
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0
+            },
+            "compression_report": compression_report
         }
 
-    
-
-    # Step 3: count tokens after compression
-    input_tokens = count_tokens(messages)
+    # Step 3: count tokens after compression (this is the input sent to Groq)
+    input_tokens = compressed_tokens
 
     # Step 4: forward to Groq
     try:
@@ -64,7 +83,6 @@ async def proxy(request: Request, chat_request: ChatRequest):
         data = response.json()
 
         if "choices" not in data:
-         print(data)
          return {"error": "Groq API request failed", "details": data}
 
     except Exception as e:
@@ -78,12 +96,13 @@ async def proxy(request: Request, chat_request: ChatRequest):
     output_text = data["choices"][0]["message"]["content"]
     output_tokens = count_tokens([{"role": "assistant", "content": output_text}])
 
-    # Step 6: return response + token report
+    # Step 6: return response + token report + compression report
     return {
         "response": data,
         "token_report": {
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
             "total_tokens": input_tokens + output_tokens
-        }
+        },
+        "compression_report": compression_report
     }

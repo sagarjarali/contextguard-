@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 
 # Your backend URL — local for testing, swap to Render URL once deployed
-API_URL = "https://contextguard-5c5a.onrender.com/v1/chat/completions"
+API_URL = "http://localhost:8000/v1/chat/completions"
 st.title("ContextGuard 🧠")
 st.caption("LLM cost optimization: compress prompts, cache repeats, cut token spend")
 
@@ -55,6 +55,13 @@ if st.button("Send"):
             col1.metric("Input tokens", report["input_tokens"])
             col2.metric("Output tokens", report["output_tokens"])
             col3.metric("Total tokens", report["total_tokens"])
+
+            comp = data["compression_report"]
+            st.subheader("Compression")
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Before compression", f"{comp['original_tokens']} tokens")
+            c2.metric("After compression", f"{comp['compressed_tokens']} tokens")
+            c3.metric("Saved", f"{comp['compression_percent']}%")
 
             if is_cache_hit:
                 st.success("⚡ Cache hit — 0 tokens spent")
