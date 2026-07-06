@@ -19,6 +19,7 @@ ContextGuard exposes a single endpoint, `/v1/chat/completions`, shaped like Groq
 3. **Forwards to Groq** only on a cache miss, and counts tokens before/after using `tiktoken`
 4. **Caches the response** for future identical requests
 
+
 ## Results (observed during manual testing)
 
 - **~38% token reduction** on system prompts after compression
@@ -28,15 +29,7 @@ These numbers come from manual testing during development, not a formal benchmar
 
 ## Architecture
 
-```
-Client → ContextGuard (FastAPI)
-              ├── compressor.py   → spaCy-based prompt compression
-              ├── counter.py      → tiktoken-based token counting
-              ├── cache.py        → Redis get/set, SHA256 cache keys
-              └── main.py         → orchestrates the above, forwards to Groq on cache miss
-                                        ↓
-                                  Groq API (Llama 3.3 70B)
-```
+![ContextGuard architecture](./assets/contextguard_architecture.png)
 
 **Cache key generation:** the full message list (system + user content) is serialized with `json.dumps(messages, sort_keys=True)` and hashed with SHA256. Hashing the entire message list — not just one message — prevents different conversations from colliding on the same cache key. `sort_keys=True` ensures identical content in a different key order still produces the same hash.
 
