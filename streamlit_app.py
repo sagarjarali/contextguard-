@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 
 # Your backend URL — local for testing, swap to Render URL once deployed
-API_URL = "http://localhost:8000/v1/chat/completions"
+API_URL = "https://contextguard-5c5a.onrender.com/v1/chat/completions"
 st.title("ContextGuard 🧠")
 st.caption("LLM cost optimization: compress prompts, cache repeats, cut token spend")
 
@@ -28,7 +28,7 @@ if st.button("Send"):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            "max_tokens": 1024
+            "max_tokens": 400
         }
 
         with st.spinner("Calling ContextGuard..."):

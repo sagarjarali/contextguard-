@@ -83,7 +83,19 @@ async def proxy(request: Request, chat_request: ChatRequest):
         data = response.json()
 
         if "choices" not in data:
-         return {"error": "Groq API request failed", "details": data}
+            # NEW: check specifically for Groq's rate-limit error code.
+            # data.get("error", {}) safely returns an empty dict if "error"
+            # isn't in the response at all, so this never crashes even if
+            # Groq sends back a totally different error shape.
+            error_code = data.get("error", {}).get("code")
+
+            if error_code == "rate_limit_exceeded":
+                return {
+                    "error": "rate_limit",
+                    "details": "This demo is popular right now! Please try again in a minute."
+                }
+
+            return {"error": "Groq API request failed", "details": data}
 
     except Exception as e:
        return {"error": "Groq API request failed", "details": str(e)}
