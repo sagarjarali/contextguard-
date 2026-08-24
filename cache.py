@@ -8,7 +8,7 @@ load_dotenv()
 REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
 
 r = redis.Redis(
-    host="picked-thrush-84969.upstash.io",
+    host="absolute-cub-77173.upstash.io",
     port=6379,
     password=REDIS_PASSWORD,
     ssl=True,
@@ -17,7 +17,7 @@ r = redis.Redis(
 
 def get_cache_key(text):
     normalized_text = text.lower().strip()
-    hash_object = hashlib.sha256( normalized_text.encode() )
+    hash_object = hashlib.sha256(normalized_text.encode())
     hexdigest = hash_object.hexdigest()
     return hexdigest
 
