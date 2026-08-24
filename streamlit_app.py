@@ -34,10 +34,19 @@ if st.button("Send"):
         with st.spinner("Calling ContextGuard..."):
             try:
                 res = requests.post(API_URL, json=payload, timeout=60)
-                data = res.json()
             except Exception as e:
                 st.error(f"Request failed: {e}")
                 st.stop()
+
+        if not res.ok:
+            st.error(f"Backend returned {res.status_code}: {res.text}")
+            st.stop()
+
+        try:
+            data = res.json()
+        except ValueError:
+            st.error(f"Backend returned invalid JSON: {res.text}")
+            st.stop()
 
         if "error" in data:
             st.error(f"Groq error: {data['details']}")
@@ -45,10 +54,14 @@ if st.button("Send"):
             report = data["token_report"]
             is_cache_hit = report["total_tokens"] == 0
 
-            reply = data["response"]["choices"][0]["message"]["content"]
+            message = data["response"]["choices"][0]["message"]
+            reply = message.get("content") or message.get("reasoning")
 
             st.subheader("Response")
-            st.write(reply)
+            if reply:
+                st.write(reply)
+            else:
+                st.warning("The model returned no displayable response.")
 
             st.subheader("Stats")
             col1, col2, col3 = st.columns(3)
